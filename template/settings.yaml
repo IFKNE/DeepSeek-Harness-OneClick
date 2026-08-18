@@ -1,0 +1,8 @@
+# DeepSeek Harness 本地设置（热加载：保存即生效，无需重启 dsh）
+#
+# 模型选择、API Key、主题等大部分设置推荐直接在 Web 界面里配置：
+#   Settings → Models / Appearance
+# 首次打开 Web 界面时，如果还没有 API Key，会弹出引导对话框。
+# 这里的键是应用自己写入的配置，也可以手动编辑（高级用法）。
+ui-theme:
+  preference: system

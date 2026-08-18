@@ -1,0 +1,24 @@
+# 防止误提交敏感/本地数据（把本文件夹放进 git 仓库时生效）
+
+# API Key 与凭据（安装后由 2-配置APIKey.bat 或应用生成，在 DSH_HOME 数据目录里，
+# 正常情况下不会出现在本文件夹；这里兜底防止误放）
+.credentials.yaml
+credentials.yaml
+*.env
+.env*
+
+# DSH 数据目录（若被复制进本仓库）
+DeepSeek Harness/
+sessions/
+storages/
+profiles/
+*.zstd
+*.jsonl
+.anonymous-user-id
+
+# Windows / 编辑器
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.log
