@@ -22,10 +22,12 @@
 
 1. **双击 `1-一键安装.bat`**
    - 电脑没有 Node.js 时会自动安装 LTS 版（可能弹一次 UAC，点"是"）。
+   - 脚本**始终安装最新版**（`@latest`），会显示当前已装版本与 npm 最新版。
    - 询问"是否使用国内镜像源"时，回车即可（默认国内 npmmirror，快）。
    - 询问"是否配置开机自启"时，回车即可（默认开启）。
-2. **双击 `2-配置APIKey.bat`**，粘贴你的 DeepSeek API Key。
-   - 没有 Key？去 https://platform.deepseek.com →「API Keys」→ 创建，格式是 `sk-` 开头的一串。
+2. **双击 `2-配置APIKey.bat`**，**一键粘贴**你的 DeepSeek API Key（免手打）：
+   - 先到 https://platform.deepseek.com →「API Keys」→ 创建，用 **Ctrl+C** 复制 Key（`sk-` 开头）。
+   - 脚本会自动从**剪贴板读取** Key，按回车确认即可；剪贴板没有时也会引导你复制后一键读取。
    - 保存后**立即生效**（配置文件是热加载的，不用重启）。
 3. **双击 `3-启动Web界面.bat`**，浏览器自动打开 **http://127.0.0.1:3080**。
    - 首次打开会引导初始化，选择工作目录（workspace）后即可对话。
@@ -77,6 +79,10 @@ dsh --version                            # 查看版本
 ```
 
 ## 六、升级
+
+安装脚本每次运行都执行 `npm install -g @deepseek-ai/dsh@latest`，所以**重复运行 `1-一键安装.bat` 即可升级到最新版**（会自动对比并提示当前版本 vs npm 最新版）。
+
+也可以手动升级：
 
 ```powershell
 npm install -g @deepseek-ai/dsh@latest

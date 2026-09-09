@@ -1,11 +1,14 @@
 ﻿#requires -Version 5.1
 <#
-  DeepSeek Harness：配置 API Key
+  DeepSeek Harness：配置 API Key（支持一键粘贴）
 
   把 DeepSeek API Key 写入 <DSH_HOME>\.credentials.yaml。
   该文件是热加载的——保存后立即生效，无需重启 dsh。
 
-  用法：双击「2-配置APIKey.bat」，按提示粘贴 Key（输入时不可见）。
+  用法：双击「2-配置APIKey.bat」。推荐流程（一键粘贴，免手打）：
+    1. 在 https://platform.deepseek.com 的「API Keys」页面用 Ctrl+C 复制你的 Key
+    2. 双击本脚本，它会自动从剪贴板读取 Key，按【Enter】确认写入
+
   参数：
     -Key          非交互模式直接传 Key（脚本化使用）
     -HomeOverride 覆盖数据目录（默认读 DSH_HOME 环境变量）
@@ -25,19 +28,86 @@ if (-not $dshHome) { $dshHome = $env:DSH_HOME }
 if (-not $dshHome) { $dshHome = Join-Path $env:USERPROFILE 'DeepSeek Harness' }
 $credsFile = Join-Path $dshHome '.credentials.yaml'
 
+function Ask-YesNo([string]$question, [bool]$defaultYes) {
+    $suffix = if ($defaultYes) { '[Y/n]' } else { '[y/N]' }
+    $answer = Read-Host "$question $suffix"
+    if ([string]::IsNullOrWhiteSpace($answer)) { return $defaultYes }
+    return $answer.Trim().ToLower() -in @('y', 'yes', '是', '1')
+}
+
+# 从剪贴板读取 API Key：提取 sk- 开头的 token（容忍剪贴板里混着网址/说明文字）
+function Get-ClipboardKey {
+    try {
+        $raw = Get-Clipboard -Raw -ErrorAction Stop
+        if (-not $raw) { return '' }
+        $m = [regex]::Match($raw, 'sk-[A-Za-z0-9_\-]+')
+        if ($m.Success) { return $m.Value }
+        return ''
+    } catch {
+        return ''
+    }
+}
+
+# 打码显示，避免完整 Key 出现在屏幕上
+function Mask-Key([string]$k) {
+    if ([string]::IsNullOrEmpty($k)) { return '' }
+    if ($k.Length -le 8) { return $k }
+    $head = [Math]::Min(8, $k.Length)
+    $tail = [Math]::Min(4, $k.Length - $head)
+    return $k.Substring(0, $head) + '…' + $k.Substring($k.Length - $tail)
+}
+
 Write-Host '==================================================' -ForegroundColor Magenta
 Write-Host '   配置 DeepSeek API Key' -ForegroundColor Magenta
 Write-Host '==================================================' -ForegroundColor Magenta
 
 # ---------- 获取 Key ----------
+# 优先：命令行传参（-Key）
+$Key = $Key.Trim()
+
+# 其次：自动从剪贴板一键粘贴
 if (-not $Key) {
-    $secure = Read-Host '请输入你的 DeepSeek API Key（输入时不可见）' -AsSecureString
+    $clipKey = Get-ClipboardKey
+    if ($clipKey) {
+        Write-Host ("    检测到剪贴板里的 API Key：{0}" -f (Mask-Key $clipKey)) -ForegroundColor Cyan
+        if (Ask-YesNo '    使用剪贴板中的这个 Key ？（免手打，按回车即用）' $true) {
+            $Key = $clipKey
+        }
+    }
+}
+
+# 若剪贴板还没有：引导复制后一键读取（免手打）
+if (-not $Key) {
+    Write-Host ''
+    Write-Host '    ▌一键粘贴：' -ForegroundColor Cyan
+    Write-Host '      1. 去 https://platform.deepseek.com 复制你的 API Key（Ctrl+C）' -ForegroundColor Cyan
+    Write-Host '      2. 回到本窗口，按一次【Enter】，脚本会自动读取剪贴板，无需手打' -ForegroundColor Cyan
+    $attempts = 0
+    while (-not $Key -and $attempts -lt 3) {
+        $attempts++
+        $null = Read-Host '        已复制好？按【Enter】读取剪贴板'
+        $clipKey = Get-ClipboardKey
+        if ($clipKey) {
+            Write-Host ("    已从剪贴板读取：{0}" -f (Mask-Key $clipKey)) -ForegroundColor Cyan
+            $Key = $clipKey
+        } else {
+            Write-Host '        剪贴板里没找到 sk- 开头的 Key。' -ForegroundColor Yellow
+        }
+    }
+}
+
+# 仍没有：退回手动粘贴输入（兼容）
+if (-not $Key) {
+    Write-Host ''
+    Write-Host '    （剪贴板读取三连失败，也可直接粘贴输入）' -ForegroundColor Yellow
+    $secure = Read-Host '    请输入你的 DeepSeek API Key（输入不可见）' -AsSecureString
     if ($secure) {
         $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         try { $Key = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr) }
         finally { [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
     }
 }
+
 $Key = $Key.Trim()
 if (-not $Key) {
     Write-Warn 'Key 为空，已取消。'

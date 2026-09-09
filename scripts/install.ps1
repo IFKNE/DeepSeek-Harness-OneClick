@@ -45,6 +45,16 @@ function Ask-YesNo([string]$question, [bool]$defaultYes) {
     return $answer.Trim().ToLower() -in @('y', 'yes', '是', '1')
 }
 
+# 查询 npm 上 @deepseek-ai/dsh 的已发布最新版本（尽力而为，失败不打断安装）
+function Get-NpmLatestVersion {
+    try {
+        $v = & npm view '@deepseek-ai/dsh' version 2>$null
+        return (($v | Select-Object -Last 1) -join '').Trim()
+    } catch {
+        return ''
+    }
+}
+
 # ---------- 目标路径 ----------
 $dshHome = if ($HomeOverride) { $HomeOverride } else { Join-Path $env:USERPROFILE 'DeepSeek Harness' }
 $npmDir  = Join-Path $env:APPDATA 'npm'
@@ -110,12 +120,18 @@ if ($needNodeInstall) {
     }
 }
 
-# ---------- 2. 安装 dsh ----------
-Write-Step "安装 $package ..."
+# ---------- 2. 安装 dsh（始终安装 @latest = 最新版） ----------
+Write-Step "安装 $package（始终装最新版 @latest）..."
 $registryArgs = @()
 if ($DryRun) {
     Write-Ok '[DRY] 将执行：npm install -g @deepseek-ai/dsh@latest（默认国内镜像，可选手动换官方源）'
 } else {
+    # 显示当前已装版本 vs npm 最新版（尽力而为，失败不影响安装）
+    $curVer = ((& dsh --version 2>$null) -join '').Trim()
+    $latestVer = Get-NpmLatestVersion
+    if ($curVer) { Write-Host ("    当前已装版本：{0}" -f $curVer) -ForegroundColor DarkGray }
+    if ($latestVer) { Write-Host ("    npm 最新版本：{0}（将安装此版本）" -f $latestVer) -ForegroundColor DarkGray }
+
     $useMirror = Ask-YesNo '使用国内镜像源（npmmirror，通常更快）安装？' $true
     if ($useMirror) {
         $registryArgs = @('--registry', 'https://registry.npmmirror.com')
@@ -137,6 +153,9 @@ if ($DryRun) {
     if (-not $dshCmd) { throw 'dsh 安装完成后未找到命令，请检查 npm 全局目录。' }
     Write-Ok "dsh 已安装：$dshCmd"
     Write-Ok "版本：$((& $dshCmd --version 2>$null) -join '')"
+    if ($latestVer -and $curVer -and $curVer -ne $latestVer) {
+        Write-Ok "已从 $curVer 升级到最新版 $latestVer"
+    }
 }
 
 # ---------- 3. DSH_HOME 与默认配置 ----------
