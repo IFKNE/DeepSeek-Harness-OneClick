@@ -57,4 +57,6 @@ Start-Job -ScriptBlock {
     }
 } -ArgumentList $url, $Port | Out-Null
 
-& $dsh web --port $Port
+# --no-open：dsh web 自身默认也会开浏览器，会和上面的 Start-Job 撞成两个标签页。
+# 这里交给 Start-Job 开（它会等端口就绪），所以把 dsh 自己的那份关掉。
+& $dsh web --port $Port --no-open

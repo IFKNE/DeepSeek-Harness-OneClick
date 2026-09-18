@@ -221,12 +221,14 @@ if (Test-Path $vbsPath) {
     $vbs = @'
 ' DeepSeek Harness web UI - silent autostart (no console window)
 ' Runs "dsh web" hidden at user logon. Delete this file to disable.
+' --no-open is required: dsh web opens the default browser by itself, which
+' would pop a browser window on every logon.
 Set shell = CreateObject("WScript.Shell")
 home = shell.ExpandEnvironmentStrings("%USERPROFILE%")
 dsh = shell.ExpandEnvironmentStrings("%APPDATA%") & "\npm\dsh.cmd"
 shell.Environment("PROCESS")("DSH_HOME") = home & "\DeepSeek Harness"
 shell.CurrentDirectory = home
-shell.Run "cmd.exe /c """ & dsh & """ web", 0, False
+shell.Run "cmd.exe /c """ & dsh & """ web --no-open", 0, False
 '@
     Set-Content -Path $vbsPath -Value $vbs -Encoding ASCII
     Write-Ok "已创建开机自启：$vbsPath"
