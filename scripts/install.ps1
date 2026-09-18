@@ -37,6 +37,16 @@ function Refresh-PathEnv {
     $env:Path = "$machine;$user"
 }
 
+function Resolve-DshCmd {
+    # 定位 dsh 命令：优先 npm 全局目录，其次 PATH；未安装时返回空字符串。
+    # 注意：$ErrorActionPreference='Stop' 下，直接 & dsh 会抛出终止性错误，必须先探测。
+    $candidate = Join-Path $npmDir 'dsh.cmd'
+    if (Test-Path $candidate) { return $candidate }
+    $found = Get-Command dsh -ErrorAction SilentlyContinue
+    if ($found) { return $found.Source }
+    return ''
+}
+
 function Ask-YesNo([string]$question, [bool]$defaultYes) {
     if ($AssumeYes) { return $defaultYes }
     $suffix = if ($defaultYes) { '[Y/n]' } else { '[y/N]' }
@@ -127,7 +137,11 @@ if ($DryRun) {
     Write-Ok '[DRY] 将执行：npm install -g @deepseek-ai/dsh@latest（默认国内镜像，可选手动换官方源）'
 } else {
     # 显示当前已装版本 vs npm 最新版（尽力而为，失败不影响安装）
-    $curVer = ((& dsh --version 2>$null) -join '').Trim()
+    $curVer = ''
+    $existingDsh = Resolve-DshCmd
+    if ($existingDsh) {
+        try { $curVer = ((& $existingDsh --version 2>$null) -join '').Trim() } catch { $curVer = '' }
+    }
     $latestVer = Get-NpmLatestVersion
     if ($curVer) { Write-Host ("    当前已装版本：{0}" -f $curVer) -ForegroundColor DarkGray }
     if ($latestVer) { Write-Host ("    npm 最新版本：{0}（将安装此版本）" -f $latestVer) -ForegroundColor DarkGray }
@@ -145,11 +159,7 @@ if ($DryRun) {
     }
 
     # 定位 dsh 命令（npm 全局目录可能在 PATH 里）
-    $dshCmd = Join-Path $npmDir 'dsh.cmd'
-    if (-not (Test-Path $dshCmd)) {
-        $found = Get-Command dsh -ErrorAction SilentlyContinue
-        $dshCmd = if ($found) { $found.Source } else { '' }
-    }
+    $dshCmd = Resolve-DshCmd
     if (-not $dshCmd) { throw 'dsh 安装完成后未找到命令，请检查 npm 全局目录。' }
     Write-Ok "dsh 已安装：$dshCmd"
     Write-Ok "版本：$((& $dshCmd --version 2>$null) -join '')"
