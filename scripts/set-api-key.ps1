@@ -127,7 +127,12 @@ $content = @"
 DEEPSEEK_API_KEY: $Key
 "@
 $tmp = "$credsFile.tmp"
-Set-Content -Path $tmp -Value $content -Encoding UTF8
+# 必须写「无 BOM」的 UTF-8，不能用 Set-Content -Encoding UTF8：
+# Windows PowerShell 5.1 的 UTF8 会带 BOM。dsh 读到扁平旧格式后会迁移成
+# `version: 1` + `refs:` 结构，迁移会把原有每行缩进两格——BOM 因此被挤到文档中间，
+# 而 YAML 只剥离文档开头的 BOM，中间的 U+FEFF 是普通字符，会让注释行变成标量，
+# 进而报 `BAD_INDENT at line 5, column 1`，dsh 直接起不来。
+[System.IO.File]::WriteAllText($tmp, $content, (New-Object System.Text.UTF8Encoding($false)))
 Move-Item -Path $tmp -Destination $credsFile -Force
 
 Write-Host ''
