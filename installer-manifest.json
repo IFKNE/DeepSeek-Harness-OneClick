@@ -1,0 +1,9 @@
+{
+  "installerVersion": "0.3.0",
+  "repository": "IFKNE/DeepSeek-Harness-OneClick",
+  "launcherVersion": "0.3.0",
+  "launcherExe": "launcher\\bin\\DeepSeek Harness.exe",
+  "launcherIcon": "launcher\\assets\\DeepSeekHarness.ico",
+  "dataFolderName": "DeepSeek Harness",
+  "updateTaskName": "DeepSeek Harness Daily Update Check"
+}

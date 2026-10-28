@@ -22,3 +22,7 @@ Desktop.ini
 .vscode/
 .idea/
 *.log
+
+# Installer build/runtime artifacts
+diagnostics/
+backups/

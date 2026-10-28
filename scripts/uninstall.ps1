@@ -8,7 +8,7 @@
     -Yes  跳过所有确认（自动化使用）
 #>
 [CmdletBinding()]
-param([switch]$Yes)
+param([switch]$Yes, [switch]$RemoveData)
 
 $ErrorActionPreference = 'Stop'
 
@@ -23,6 +23,18 @@ function Ask-YesNo([string]$question, [bool]$defaultYes) {
 Write-Host '==================================================' -ForegroundColor Magenta
 Write-Host '   卸载 DeepSeek Harness' -ForegroundColor Magenta
 Write-Host '==================================================' -ForegroundColor Magenta
+
+$launcherRoot = Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness'
+$taskName = 'DeepSeek Harness Daily Update Check'
+try { Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue } catch { }
+if (Test-Path -LiteralPath $launcherRoot) {
+    Remove-Item -LiteralPath $launcherRoot -Recurse -Force
+    Write-Host '    [OK] 已删除原生启动器文件' -ForegroundColor Green
+}
+foreach ($shortcut in @(
+    (Join-Path ([Environment]::GetFolderPath('Desktop')) 'DeepSeek Harness.lnk'),
+    (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\DeepSeek Harness\DeepSeek Harness.lnk')
+)) { if (Test-Path -LiteralPath $shortcut) { Remove-Item -LiteralPath $shortcut -Force } }
 
 # 1. 开机自启
 $startupDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
@@ -46,7 +58,9 @@ if ($dshHome) {
 
 # 3. 数据目录
 if (Test-Path $dshHome) {
-    if (Ask-YesNo "删除数据目录 $dshHome（包含所有会话记录）？" $false) {
+    $deleteData = $RemoveData
+    if (-not $deleteData -and (Ask-YesNo '是否进入删除聊天数据的二次确认？默认保留数据。' $false)) { $deleteData = $true }
+    if ($deleteData -and (Ask-YesNo "再次确认：删除数据目录 $dshHome（包含所有会话记录）？" $false)) {
         Remove-Item $dshHome -Recurse -Force
         Write-Host '    [OK] 已删除数据目录' -ForegroundColor Green
     } else {
