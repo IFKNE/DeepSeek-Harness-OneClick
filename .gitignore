@@ -26,3 +26,5 @@ Desktop.ini
 # Installer build/runtime artifacts
 diagnostics/
 backups/
+launcher/bin/LauncherCoreTests.exe
+launcher/bin/*.pdb
